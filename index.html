@@ -62,7 +62,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const isTaken=(d,b,t)=>taken.has(d+"|"+b+"|"+t)||taken.has(d+"|"+b+"|*");
 function pastSlot(date,t){const n=new Date();if(date!==dkey(n))return false;const[h,m]=t.split(":").map(Number);return h*60+m<=n.getHours()*60+n.getMinutes()}
 async function load(){
- try{const r=await fetch(API);const j=await r.json();taken=new Set(j.taken.map(x=>x[0]+"|"+x[1]+"|"+x[2]));loaded=true;loadErr=false}
+ try{const r=await fetch(API);const j=await r.json();taken=new Set(j.taken.map(x=>x[0]+"|"+x[1]+"|"+x[2]));if(j.services&&j.services.length)CFG.services=j.services;if(j.barbers&&j.barbers.length)CFG.barbers=j.barbers;loaded=true;loadErr=false}
  catch(e){loadErr=true}
  if(!S.done&&!(document.activeElement&&["INPUT"].includes(document.activeElement.tagName)))render();
 }
