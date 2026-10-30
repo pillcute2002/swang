@@ -43,7 +43,8 @@ td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
 </head>
 <body>
 <nav><b>SWANG</b><div><a data-r="home">Trang chủ</a><a data-r="book">Đặt lịch</a></div></nav>
-
+<main id="app"></main>
+<div id="ver" style="text-align:center;color:#555;font-size:12px;padding:0 0 24px">Phiên bản 4 · đang tải dữ liệu...</div>
 <script>
 /* ====== CẤU HÌNH – bạn sửa ở đây ====== */
 const API="https://script.google.com/macros/s/AKfycbzO0xLM4BD2YwysaY-WSBAqegtYjx0itbdg0OKRTu5-OwLiPDKSNtjcApv4S62obpEv/exec";
@@ -73,7 +74,7 @@ function home(){
  app.innerHTML=`<h1>${esc(CFG.shop)}</h1><p class="sub">${esc(CFG.tag)}</p><div class="gal">${imgs}</div><h2>Dịch vụ</h2>${CFG.services.map(s=>`<div class="chip svc"><span>${esc(s.n)}</span><span>${esc(s.p)}đ</span></div>`).join("")}<p class="c" style="margin-top:36px"><a class="btn" href="#book">Đặt lịch ngay</a></p>`;
 }
 function book(){
- if(S.done){app.innerHTML=`<div class="msg"><b>Đặt lịch thành công!</b><br>${esc(S.done)}<br>Tiệm sẽ liên hệ với bạn qua số điện thoại nếu cần. Nếu bạn đến trễ sau 15 phút lịch sẽ bị hủy, nếu cần hủy lịch vui lòng liên hệ 123435</div><a class="btn" href="#book" id="again">Đặt thêm</a>`;$("#again").onclick=()=>{S.done=null;S.time=null;render()};return}
+ if(S.done){app.innerHTML=`<div class="msg"><b>Đặt lịch thành công!</b><br>${esc(S.done)}<br>Tiệm sẽ liên hệ với bạn qua số điện thoại nếu cần sdsadsdsadsadsadsadsad.</div><a class="btn" href="#book" id="again">Đặt thêm</a>`;$("#again").onclick=()=>{S.done=null;S.time=null;render()};return}
  const sv=CFG.services.map((s,i)=>`<div class="chip svc ${S.svc===i?"on":""}" data-s="${i}"><span>${esc(s.n)}</span><span>${esc(priceFor(s,S.barber))}đ</span></div>`).join("");
  const bb=CFG.barbers.map((b,i)=>`<div class="chip ${S.barber===i?"on":""}" data-b="${i}">${esc(b)}</div>`).join("");
  let tm=`<h2>Khung giờ</h2>`;
