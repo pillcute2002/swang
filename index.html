@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SWANG – Đặt lịch cắt tóc</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#000;--fg:#fff;--mut:#9a9a9a;--line:#2a2a2a;--card:#111}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+nav{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+nav b{letter-spacing:.3em;font-size:18px}
+nav a{color:var(--fg);text-decoration:none;margin-left:18px;font-size:14px;opacity:.7;cursor:pointer}
+nav a.on{opacity:1;border-bottom:1px solid #fff}
+main{max-width:860px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:clamp(44px,12vw,88px);letter-spacing:.25em;margin:40px 0 8px;text-align:center}
+.sub{text-align:center;color:var(--mut);margin-bottom:28px}
+.gal{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:28px 0}
+.gal div,.gal img{aspect-ratio:4/5;width:100%;object-fit:cover;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:13px}
+.btn{background:#fff;color:#000;border:0;padding:14px 28px;font-size:15px;font-weight:600;cursor:pointer;display:inline-block;text-decoration:none}
+.btn.o{background:none;color:#fff;border:1px solid #fff}
+.btn:disabled{opacity:.4;cursor:default}
+.c{text-align:center}
+h2{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut);margin:30px 0 10px;font-weight:500}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:10px 14px;cursor:pointer;font-size:14px;text-align:center}
+.chip.on{background:#fff;color:#000;border-color:#fff}
+.chip.x{opacity:.3;text-decoration:line-through;cursor:not-allowed}
+.chip small{display:block;color:inherit;opacity:.7;font-size:12px}
+.svc{width:100%;display:flex;justify-content:space-between;text-align:left}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px}
+input,select{width:100%;background:var(--card);border:1px solid var(--line);color:#fff;padding:12px;font-size:16px;margin-bottom:10px}
+.msg{padding:14px;border:1px solid #fff;margin:16px 0}
+.err{border-color:#f66;color:#f99}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+.g2{display:grid;grid-template-columns:1fr 1fr auto;gap:8px}
+.g2 input{margin:0}
+.tabs{display:flex;gap:8px;margin-bottom:10px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<nav><b>SWANG</b><div><a data-r="home">Trang chủ</a><a data-r="book">Đặt lịch</a></div></nav>
+<main id="app"></main>
+<script>
+/* ====== CẤU HÌNH – bạn sửa ở đây ====== */
+const API="https://script.google.com/macros/s/AKfycbzO0xLM4BD2YwysaY-WSBAqegtYjx0itbdg0OKRTu5-OwLiPDKSNtjcApv4S62obpEv/exec";
+const CFG={shop:"SWANG",tag:"Barber shop",
+ images:[], // dán link ảnh vào đây, vd: "images/tiem1.jpg"
+ services:[{n:"Cắt tóc",p:"60.000"},{n:"Ép side",p:"150.000"},{n:"Perm",p:"100.000"},{n:"Uốn tóc",p:"200.000 - 300.000"},{n:"Tẩy tóc",p:"250.000"},{n:"Nhuộm tóc",p:"200.000"}],
+ barbers:["Thợ 1","Thợ 2","Thợ 3"]};
+/* ======================================= */
+const TIMES=[];for(let h=9;h<=19;h++){TIMES.push(h+":00");if(h<19)TIMES.push(h+":30")}
+const WD=["Chủ nhật","Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7"];
+let taken=new Set(),loaded=false,loadErr=false,S={svc:null,barber:null,date:null,time:null,done:null,err:null};
+const $=s=>document.querySelector(s),app=$("#app"),pad=n=>String(n).padStart(2,"0");
+const dkey=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const days=()=>{const a=[],t=new Date();for(let i=0;i<14;i++)a.push(new Date(t.getFullYear(),t.getMonth(),t.getDate()+i));return a};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const isTaken=(d,b,t)=>taken.has(d+"|"+b+"|"+t)||taken.has(d+"|"+b+"|*");
+function pastSlot(date,t){const n=new Date();if(date!==dkey(n))return false;const[h,m]=t.split(":").map(Number);return h*60+m<=n.getHours()*60+n.getMinutes()}
+async function load(){
+ try{const r=await fetch(API);const j=await r.json();taken=new Set(j.taken.map(x=>x[0]+"|"+x[1]+"|"+x[2]));loaded=true;loadErr=false}
+ catch(e){loadErr=true}
+ if(!S.done&&!(document.activeElement&&["INPUT"].includes(document.activeElement.tagName)))render();
+}
+function render(){const r=(location.hash||"#home").slice(1);document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.r===r));r==="book"?book():home()}
+function home(){
+ const imgs=CFG.images.length?CFG.images.map(u=>`<img src="${esc(u)}" alt="">`).join(""):[1,2,3].map(i=>`<div>Ảnh tiệm ${i}</div>`).join("");
+ app.innerHTML=`<h1>${esc(CFG.shop)}</h1><p class="sub">${esc(CFG.tag)}</p><div class="gal">${imgs}</div><h2>Dịch vụ</h2>${CFG.services.map(s=>`<div class="chip svc"><span>${esc(s.n)}</span><span>${esc(s.p)}đ</span></div>`).join("")}<p class="c" style="margin-top:36px"><a class="btn" href="#book">Đặt lịch ngay</a></p>`;
+}
+function book(){
+ if(S.done){app.innerHTML=`<div class="msg"><b>Đặt lịch thành công!</b><br>${esc(S.done)}<br>Tiệm sẽ liên hệ với bạn qua số điện thoại nếu cần.</div><a class="btn" href="#book" id="again">Đặt thêm</a>`;$("#again").onclick=()=>{S.done=null;S.time=null;render()};return}
+ const sv=CFG.services.map((s,i)=>`<div class="chip svc ${S.svc===i?"on":""}" data-s="${i}"><span>${esc(s.n)}</span><span>${esc(s.p)}đ</span></div>`).join("");
+ const bb=CFG.barbers.map((b,i)=>`<div class="chip ${S.barber===i?"on":""}" data-b="${i}">${esc(b)}</div>`).join("");
+ let tm=`<h2>Khung giờ</h2>`;
+ if(loadErr)tm+=`<div class="msg err">Không tải được lịch từ hệ thống. Vui lòng tải lại trang.</div>`;
+ else if(S.barber!==null&&S.date)tm+=`<div class="slots">`+TIMES.map(t=>{const x=isTaken(S.date,CFG.barbers[S.barber],t)||pastSlot(S.date,t);return `<div class="chip ${S.time===t?"on":""} ${x?"x":""}" data-t="${t}">${t}</div>`}).join("")+`</div>`;
+ else tm+=`<p style="color:var(--mut)">Chọn thợ và ngày để xem giờ trống.</p>`;
+ const ready=S.svc!==null&&S.barber!==null&&S.date&&S.time;
+ const dc=days().map(d=>`<div class="chip ${S.date===dkey(d)?"on":""}" data-d="${dkey(d)}">${WD[d.getDay()]}<small>${d.getDate()}/${d.getMonth()+1}</small></div>`).join("");
+ app.innerHTML=`<h2>1. Dịch vụ</h2>${sv}<h2>2. Thợ cắt</h2><div class="row">${bb}</div><h2>3. Ngày</h2><div class="row">${dc}</div>${tm}${ready?`<h2>4. Thông tin</h2><input id="nm" placeholder="Tên của bạn" autocomplete="name"><input id="ph" type="tel" placeholder="Số điện thoại" autocomplete="tel">${S.err?`<div class="msg err">${esc(S.err)}</div>`:""}<button class="btn" id="ok">Xác nhận đặt lịch</button>`:""}`;
+ app.querySelectorAll("[data-s]").forEach(e=>e.onclick=()=>{S.svc=+e.dataset.s;render()});
+ app.querySelectorAll("[data-b]").forEach(e=>e.onclick=()=>{S.barber=+e.dataset.b;S.time=null;render()});
+ app.querySelectorAll("[data-d]").forEach(e=>e.onclick=()=>{S.date=e.dataset.d;S.time=null;render()});
+ app.querySelectorAll("[data-t]").forEach(e=>e.onclick=()=>{if(e.classList.contains("x"))return;S.time=e.dataset.t;S.err=null;render()});
+ if(ready)$("#ok").onclick=confirmBooking;
+}
+async function confirmBooking(){
+ const nm=$("#nm").value.trim(),ph=$("#ph").value.trim();
+ const fail=m=>{S.err=m;render();$("#nm")&&($("#nm").value=nm,$("#ph").value=ph)};
+ if(!nm||!/^[0-9+ ]{9,13}$/.test(ph))return fail("Vui lòng nhập tên và số điện thoại hợp lệ.");
+ const btn=$("#ok");btn.disabled=true;btn.textContent="Đang gửi...";
+ const sv=CFG.services[S.svc],b=CFG.barbers[S.barber],d={date:S.date,time:S.time,barber:b,service:sv.n,price:sv.p,name:nm,phone:ph};
+ try{
+  const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(d)});
+  const j=await r.json();
+  if(!j.ok){await load();S.time=null;return fail("Rất tiếc, khung giờ này vừa có người đặt. Vui lòng chọn giờ khác.")}
+  const dt=new Date(S.date+"T00:00");
+  taken.add(S.date+"|"+b+"|"+S.time);
+  S.done=`${sv.n} · ${b} · ${WD[dt.getDay()]} ${dt.getDate()}/${dt.getMonth()+1} lúc ${S.time}`;S.err=null;S.time=null;render();
+ }catch(e){fail("Không gửi được. Vui lòng kiểm tra mạng và thử lại.")}
+}
+addEventListener("hashchange",render);
+document.querySelectorAll("nav a").forEach(a=>a.onclick=()=>{location.hash=a.dataset.r});
+render();load();setInterval(load,30000);
+</script>
+</body>
+</html>
