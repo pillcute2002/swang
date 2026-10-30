@@ -59,6 +59,7 @@ const $=s=>document.querySelector(s),app=$("#app"),pad=n=>String(n).padStart(2,"
 const dkey=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const days=()=>{const a=[],t=new Date();for(let i=0;i<14;i++)a.push(new Date(t.getFullYear(),t.getMonth(),t.getDate()+i));return a};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const priceFor=(s,b)=>(b!==null&&b!==undefined&&s.bp&&s.bp[CFG.barbers[b]])||s.p;
 const isTaken=(d,b,t)=>taken.has(d+"|"+b+"|"+t)||taken.has(d+"|"+b+"|*");
 function pastSlot(date,t){const n=new Date();if(date!==dkey(n))return false;const[h,m]=t.split(":").map(Number);return h*60+m<=n.getHours()*60+n.getMinutes()}
 async function load(){
@@ -73,7 +74,7 @@ function home(){
 }
 function book(){
  if(S.done){app.innerHTML=`<div class="msg"><b>Đặt lịch thành công!</b><br>${esc(S.done)}<br>Tiệm sẽ liên hệ với bạn qua số điện thoại nếu cần.</div><a class="btn" href="#book" id="again">Đặt thêm</a>`;$("#again").onclick=()=>{S.done=null;S.time=null;render()};return}
- const sv=CFG.services.map((s,i)=>`<div class="chip svc ${S.svc===i?"on":""}" data-s="${i}"><span>${esc(s.n)}</span><span>${esc(s.p)}đ</span></div>`).join("");
+ const sv=CFG.services.map((s,i)=>`<div class="chip svc ${S.svc===i?"on":""}" data-s="${i}"><span>${esc(s.n)}</span><span>${esc(priceFor(s,S.barber))}đ</span></div>`).join("");
  const bb=CFG.barbers.map((b,i)=>`<div class="chip ${S.barber===i?"on":""}" data-b="${i}">${esc(b)}</div>`).join("");
  let tm=`<h2>Khung giờ</h2>`;
  if(loadErr)tm+=`<div class="msg err">Không tải được lịch từ hệ thống. Vui lòng tải lại trang.</div>`;
@@ -93,7 +94,7 @@ async function confirmBooking(){
  const fail=m=>{S.err=m;render();$("#nm")&&($("#nm").value=nm,$("#ph").value=ph)};
  if(!nm||!/^[0-9+ ]{9,13}$/.test(ph))return fail("Vui lòng nhập tên và số điện thoại hợp lệ.");
  const btn=$("#ok");btn.disabled=true;btn.textContent="Đang gửi...";
- const sv=CFG.services[S.svc],b=CFG.barbers[S.barber],d={date:S.date,time:S.time,barber:b,service:sv.n,price:sv.p,name:nm,phone:ph};
+ const sv=CFG.services[S.svc],b=CFG.barbers[S.barber],d={date:S.date,time:S.time,barber:b,service:sv.n,price:priceFor(sv,S.barber),name:nm,phone:ph};
  try{
   const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(d)});
   const j=await r.json();
