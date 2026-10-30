@@ -30,7 +30,7 @@ h2{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut);
 .chip small{display:block;color:inherit;opacity:.7;font-size:12px}
 .svc{width:100%;display:flex;justify-content:space-between;text-align:left}
 .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px}
-input,select{width:100%;background:var(--card);border:1px solid var(--line);color:#fff;padding:12px;font-size:16px;margin-bottom:10px}
+input,select{color-scheme:dark;width:100%;background:var(--card);border:1px solid var(--line);color:#fff;padding:12px;font-size:16px;margin-bottom:10px}
 .msg{padding:14px;border:1px solid #fff;margin:16px 0}
 .err{border-color:#f66;color:#f99}
 table{width:100%;border-collapse:collapse;font-size:14px}
@@ -44,7 +44,7 @@ td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
 <body>
 <nav><b>SWANG</b><div><a data-r="home">Trang chủ</a><a data-r="book">Đặt lịch</a></div></nav>
 <main id="app"></main>
-<div id="ver" style="text-align:center;color:#555;font-size:12px;padding:0 0 24px">Phiên bản 4 · đang tải dữ liệu...</div>
+<div id="ver" style="text-align:center;color:#555;font-size:12px;padding:0 0 24px">Phiên bản 5 · đang tải dữ liệu...</div>
 <script>
 /* ====== CẤU HÌNH – bạn sửa ở đây ====== */
 const API="https://script.google.com/macros/s/AKfycbzO0xLM4BD2YwysaY-WSBAqegtYjx0itbdg0OKRTu5-OwLiPDKSNtjcApv4S62obpEv/exec";
@@ -53,7 +53,7 @@ const CFG={shop:"SWANG",tag:"Barber shop",
  services:[{n:"Cắt tóc",p:"60.000"},{n:"Ép side",p:"150.000"},{n:"Perm",p:"100.000"},{n:"Uốn tóc",p:"200.000 - 300.000"},{n:"Tẩy tóc",p:"250.000"},{n:"Nhuộm tóc",p:"200.000"}],
  barbers:["Thợ 1","Thợ 2","Thợ 3"]};
 /* ======================================= */
-const TIMES=[];for(let h=9;h<=19;h++){TIMES.push(h+":00");if(h<19)TIMES.push(h+":30")}
+const TIMES=[];for(let h=9;h<=18;h++){if(h>9)TIMES.push(h+":00");TIMES.push(h+":30")}
 const WD=["Chủ nhật","Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7"];
 let taken=new Set(),loaded=false,loadErr=false,S={svc:null,barber:null,date:null,time:null,done:null,err:null};
 const $=s=>document.querySelector(s),app=$("#app"),pad=n=>String(n).padStart(2,"0");
@@ -61,11 +61,13 @@ const dkey=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const days=()=>{const a=[],t=new Date();for(let i=0;i<14;i++)a.push(new Date(t.getFullYear(),t.getMonth(),t.getDate()+i));return a};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const priceFor=(s,b)=>(b!==null&&b!==undefined&&s.bp&&s.bp[CFG.barbers[b]])||s.p;
+const maxDate=()=>{const t=new Date();return dkey(new Date(t.getFullYear(),t.getMonth(),t.getDate()+365))};
+const wdText=v=>{const d=new Date(v+"T00:00");return WD[d.getDay()]+" "+d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear()};
 const isTaken=(d,b,t)=>taken.has(d+"|"+b+"|"+t)||taken.has(d+"|"+b+"|*");
 function pastSlot(date,t){const n=new Date();if(date!==dkey(n))return false;const[h,m]=t.split(":").map(Number);return h*60+m<=n.getHours()*60+n.getMinutes()}
 async function load(){
- try{const r=await fetch(API);const j=await r.json();taken=new Set(j.taken.map(x=>x[0]+"|"+x[1]+"|"+x[2]));if(j.services&&j.services.length)CFG.services=j.services;if(j.barbers&&j.barbers.length)CFG.barbers=j.barbers;loaded=true;loadErr=false;$("#ver").textContent="Phiên bản 4 · đã tải dữ liệu từ Sheet ("+CFG.barbers.length+" thợ)"}
- catch(e){loadErr=true;$("#ver").textContent="Phiên bản 4 · LỖI tải dữ liệu từ Sheet: "+e.message}
+ try{const r=await fetch(API);const j=await r.json();taken=new Set(j.taken.map(x=>x[0]+"|"+x[1]+"|"+x[2]));if(j.services&&j.services.length)CFG.services=j.services;if(j.barbers&&j.barbers.length)CFG.barbers=j.barbers;loaded=true;loadErr=false;$("#ver").textContent="Phiên bản 5 · đã tải dữ liệu từ Sheet ("+CFG.barbers.length+" thợ)"}
+ catch(e){loadErr=true;$("#ver").textContent="Phiên bản 5 · LỖI tải dữ liệu từ Sheet: "+e.message}
  if(!S.done&&!(document.activeElement&&["INPUT"].includes(document.activeElement.tagName)))render();
 }
 function render(){const r=(location.hash||"#home").slice(1);document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.r===r));r==="book"?book():home()}
@@ -74,7 +76,7 @@ function home(){
  app.innerHTML=`<h1>${esc(CFG.shop)}</h1><p class="sub">${esc(CFG.tag)}</p><div class="gal">${imgs}</div><h2>Dịch vụ</h2>${CFG.services.map(s=>`<div class="chip svc"><span>${esc(s.n)}</span><span>${esc(s.p)}đ</span></div>`).join("")}<p class="c" style="margin-top:36px"><a class="btn" href="#book">Đặt lịch ngay</a></p>`;
 }
 function book(){
- if(S.done){app.innerHTML=`<div class="msg"><b>Đặt lịch thành công!</b><br>${esc(S.done)}<br>Tiệm sẽ liên hệ với bạn qua số điện thoại nếu cần sdsadsdsadsadsadsadsad.</div><a class="btn" href="#book" id="again">Đặt thêm</a>`;$("#again").onclick=()=>{S.done=null;S.time=null;render()};return}
+ if(S.done){app.innerHTML=`<div class="msg"><b>Đặt lịch thành công!</b><br>${esc(S.done)}<br>Tiệm sẽ liên hệ với bạn qua số điện thoại nếu cần.</div><a class="btn" href="#book" id="again">Đặt thêm</a>`;$("#again").onclick=()=>{S.done=null;S.time=null;render()};return}
  const sv=CFG.services.map((s,i)=>`<div class="chip svc ${S.svc===i?"on":""}" data-s="${i}"><span>${esc(s.n)}</span><span>${esc(priceFor(s,S.barber))}đ</span></div>`).join("");
  const bb=CFG.barbers.map((b,i)=>`<div class="chip ${S.barber===i?"on":""}" data-b="${i}">${esc(b)}</div>`).join("");
  let tm=`<h2>Khung giờ</h2>`;
@@ -82,11 +84,11 @@ function book(){
  else if(S.barber!==null&&S.date)tm+=`<div class="slots">`+TIMES.map(t=>{const x=isTaken(S.date,CFG.barbers[S.barber],t)||pastSlot(S.date,t);return `<div class="chip ${S.time===t?"on":""} ${x?"x":""}" data-t="${t}">${t}</div>`}).join("")+`</div>`;
  else tm+=`<p style="color:var(--mut)">Chọn thợ và ngày để xem giờ trống.</p>`;
  const ready=S.svc!==null&&S.barber!==null&&S.date&&S.time;
- const dc=days().map(d=>`<div class="chip ${S.date===dkey(d)?"on":""}" data-d="${dkey(d)}">${WD[d.getDay()]}<small>${d.getDate()}/${d.getMonth()+1}</small></div>`).join("");
+ const dc=`<input type="date" id="dt" min="${dkey(new Date())}" max="${maxDate()}" value="${S.date||""}" style="width:auto;min-width:200px;margin:0">${S.date?`<span style="margin-left:12px;color:var(--mut)">${wdText(S.date)}</span>`:""}`;
  app.innerHTML=`<h2>1. Dịch vụ</h2>${sv}<h2>2. Thợ cắt</h2><div class="row">${bb}</div><h2>3. Ngày</h2><div class="row">${dc}</div>${tm}${ready?`<h2>4. Thông tin</h2><input id="nm" placeholder="Tên của bạn" autocomplete="name"><input id="ph" type="tel" placeholder="Số điện thoại" autocomplete="tel">${S.err?`<div class="msg err">${esc(S.err)}</div>`:""}<button class="btn" id="ok">Xác nhận đặt lịch</button>`:""}`;
  app.querySelectorAll("[data-s]").forEach(e=>e.onclick=()=>{S.svc=+e.dataset.s;render()});
  app.querySelectorAll("[data-b]").forEach(e=>e.onclick=()=>{S.barber=+e.dataset.b;S.time=null;render()});
- app.querySelectorAll("[data-d]").forEach(e=>e.onclick=()=>{S.date=e.dataset.d;S.time=null;render()});
+ $("#dt").onchange=e=>{const v=e.target.value;S.date=(v&&v>=dkey(new Date())&&v<=maxDate())?v:null;S.time=null;render()};
  app.querySelectorAll("[data-t]").forEach(e=>e.onclick=()=>{if(e.classList.contains("x"))return;S.time=e.dataset.t;S.err=null;render()});
  if(ready)$("#ok").onclick=confirmBooking;
 }
