@@ -44,16 +44,16 @@ td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
 <body>
 <nav><b>SWANG</b><div><a data-r="home">Trang chủ</a><a data-r="book">Đặt lịch</a></div></nav>
 <main id="app"></main>
-<div id="ver" style="text-align:center;color:#555;font-size:12px;padding:0 0 24px">Phiên bản 5 · đang tải dữ liệu...</div>
 <script>
 /* ====== CẤU HÌNH – bạn sửa ở đây ====== */
 const API="https://script.google.com/macros/s/AKfycbzO0xLM4BD2YwysaY-WSBAqegtYjx0itbdg0OKRTu5-OwLiPDKSNtjcApv4S62obpEv/exec";
 const CFG={shop:"SWANG",tag:"Barber shop",
- images:[], // dán link ảnh vào đây, vd: "images/tiem1.jpg"
+ images:[], // dán tên/link ảnh, vd: ["tiem1.jpg","tiem2.jpg"] (nhớ có dấu phẩy giữa các ảnh)
+ imagesPosition:"top", // "top" = ảnh nằm TRÊN bảng giá, "bottom" = ảnh nằm DƯỚI bảng giá. Chỉ sửa chữ trong ngoặc kép, không di chuyển dòng
  services:[{n:"Cắt tóc",p:"60.000"},{n:"Ép side",p:"150.000"},{n:"Perm",p:"100.000"},{n:"Uốn tóc",p:"200.000 - 300.000"},{n:"Tẩy tóc",p:"250.000"},{n:"Nhuộm tóc",p:"200.000"}],
  barbers:["Thợ 1","Thợ 2","Thợ 3"]};
 /* ======================================= */
-const TIMES=[];for(let h=9;h<=18;h++){if(h>9)TIMES.push(h+":00");TIMES.push(h+":30")}
+const TIMES=[];for(let h=9;h<=18;h++){TIMES.push(h+":00");TIMES.push(h+":30")}
 const WD=["Chủ nhật","Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7"];
 let taken=new Set(),loaded=false,loadErr=false,S={svc:null,barber:null,date:null,time:null,done:null,err:null};
 const $=s=>document.querySelector(s),app=$("#app"),pad=n=>String(n).padStart(2,"0");
@@ -66,14 +66,16 @@ const wdText=v=>{const d=new Date(v+"T00:00");return WD[d.getDay()]+" "+d.getDat
 const isTaken=(d,b,t)=>taken.has(d+"|"+b+"|"+t)||taken.has(d+"|"+b+"|*");
 function pastSlot(date,t){const n=new Date();if(date!==dkey(n))return false;const[h,m]=t.split(":").map(Number);return h*60+m<=n.getHours()*60+n.getMinutes()}
 async function load(){
- try{const r=await fetch(API);const j=await r.json();taken=new Set(j.taken.map(x=>x[0]+"|"+x[1]+"|"+x[2]));if(j.services&&j.services.length)CFG.services=j.services;if(j.barbers&&j.barbers.length)CFG.barbers=j.barbers;loaded=true;loadErr=false;$("#ver").textContent="Phiên bản 5 · đã tải dữ liệu từ Sheet ("+CFG.barbers.length+" thợ)"}
- catch(e){loadErr=true;$("#ver").textContent="Phiên bản 5 · LỖI tải dữ liệu từ Sheet: "+e.message}
+ try{const r=await fetch(API);const j=await r.json();taken=new Set(j.taken.map(x=>x[0]+"|"+x[1]+"|"+x[2]));if(j.services&&j.services.length)CFG.services=j.services;if(j.barbers&&j.barbers.length)CFG.barbers=j.barbers;loaded=true;loadErr=false}
+ catch(e){loadErr=true}
  if(!S.done&&!(document.activeElement&&["INPUT"].includes(document.activeElement.tagName)))render();
 }
 function render(){const r=(location.hash||"#home").slice(1);document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.r===r));r==="book"?book():home()}
 function home(){
  const imgs=CFG.images.length?CFG.images.map(u=>`<img src="${esc(u)}" alt="">`).join(""):[1,2,3].map(i=>`<div>Ảnh tiệm ${i}</div>`).join("");
- app.innerHTML=`<h1>${esc(CFG.shop)}</h1><p class="sub">${esc(CFG.tag)}</p><div class="gal">${imgs}</div><h2>Dịch vụ</h2>${CFG.services.map(s=>`<div class="chip svc"><span>${esc(s.n)}</span><span>${esc(s.p)}đ</span></div>`).join("")}<p class="c" style="margin-top:36px"><a class="btn" href="#book">Đặt lịch ngay</a></p>`;
+ const gal=`<div class="gal">${imgs}</div>`,top=CFG.imagesPosition!=="bottom";
+ const list=`<h2>Dịch vụ</h2>${CFG.services.map(s=>`<div class="chip svc"><span>${esc(s.n)}</span><span>${esc(s.p)}đ</span></div>`).join("")}`;
+ app.innerHTML=`<h1>${esc(CFG.shop)}</h1><p class="sub">${esc(CFG.tag)}</p>${top?gal+list:list+gal}<p class="c" style="margin-top:36px"><a class="btn" href="#book">Đặt lịch ngay</a></p>`;
 }
 function book(){
  if(S.done){app.innerHTML=`<div class="msg"><b>Đặt lịch thành công!</b><br>${esc(S.done)}<br>Tiệm sẽ liên hệ với bạn qua số điện thoại nếu cần.</div><a class="btn" href="#book" id="again">Đặt thêm</a>`;$("#again").onclick=()=>{S.done=null;S.time=null;render()};return}
