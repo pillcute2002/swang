@@ -51,13 +51,16 @@ td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
 const API="https://script.google.com/macros/s/AKfycbzO0xLM4BD2YwysaY-WSBAqegtYjx0itbdg0OKRTu5-OwLiPDKSNtjcApv4S62obpEv/exec";
 const CFG={shop:"SWANG",tag:"Men's hair studio",
  images:["image2.jpg","image1.jpg"], // dán tên/link ảnh, vd: ["tiem1.jpg","tiem2.jpg"] (nhớ có dấu phẩy giữa các ảnh)
- imagesPosition:"bottom", // "bottom" = ảnh nằm TRÊN bảng giá, "bottom" = ảnh nằm DƯỚI bảng giá. Chỉ sửa chữ trong ngoặc kép, không di chuyển dòng
+ imagesPosition:"top", // "top" = ảnh nằm TRÊN bảng giá, "bottom" = ảnh nằm DƯỚI bảng giá. Chỉ sửa chữ trong ngoặc kép, không di chuyển dòng
  services:[{n:"Cắt tóc",p:"60.000"},{n:"Ép side",p:"150.000"},{n:"Perm",p:"100.000"},{n:"Uốn tóc",p:"200.000 - 300.000"},{n:"Tẩy tóc",p:"250.000"},{n:"Nhuộm tóc",p:"200.000"}],
  barbers:["Thợ 1","Thợ 2","Thợ 3"]};
 /* ======================================= */
 const TIMES=[];for(let h=9;h<=18;h++){TIMES.push(h+":00");TIMES.push(h+":30")}
+const selSvcs=()=>S.svcs.map(i=>CFG.services[i]).filter(Boolean);
+const money=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,".");
+const priceTotal=()=>{let a=0,b=0;selSvcs().forEach(s=>{const x=(String(priceFor(s,S.barber)).replace(/\./g,"").match(/\d+/g)||[]).map(Number);if(x.length){a+=x[0];b+=x[x.length-1]}});return a===b?money(a):money(a)+" - "+money(b)};
 const WD=["Chủ nhật","Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7"];
-let taken=new Set(),loaded=false,loadErr=false,S={svc:null,barber:null,date:null,time:null,done:null,err:null};
+let taken=new Set(),loaded=false,loadErr=false,S={svcs:[],barber:null,date:null,time:null,done:null,err:null};
 const $=s=>document.querySelector(s),app=$("#app"),pad=n=>String(n).padStart(2,"0");
 const dkey=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const days=()=>{const a=[],t=new Date();for(let i=0;i<14;i++)a.push(new Date(t.getFullYear(),t.getMonth(),t.getDate()+i));return a};
@@ -81,16 +84,17 @@ function home(){
 }
 function book(){
  if(S.done){app.innerHTML=`<div class="msg"><b>Đặt lịch thành công!</b><br>${esc(S.done)}<br>Tiệm sẽ liên hệ với bạn qua số điện thoại nếu cần. Lịch của bạn sẽ bị hủy nếu bạn đến trễ sau 10 phút, nếu muốn hủy lịch vui lòng liên hệ 0799699540</div><a class="btn" href="#book" id="again">Đặt thêm</a>`;$("#again").onclick=()=>{S.done=null;S.time=null;render()};return}
- const sv=CFG.services.map((s,i)=>`<div class="chip svc ${S.svc===i?"on":""}" data-s="${i}"><span>${esc(s.n)}</span><span>${esc(priceFor(s,S.barber))}đ</span></div>`).join("");
+ const sv=CFG.services.map((s,i)=>`<div class="chip svc ${S.svcs.includes(i)?"on":""}" data-s="${i}"><span>${S.svcs.includes(i)?"☑":"☐"} ${esc(s.n)}</span><span>${esc(priceFor(s,S.barber))}đ</span></div>`).join("");
  const bb=CFG.barbers.map((b,i)=>`<div class="chip ${S.barber===i?"on":""}" data-b="${i}">${esc(b)}</div>`).join("");
  let tm=`<h2>Khung giờ</h2>`;
  if(loadErr)tm+=`<div class="msg err">Không tải được lịch từ hệ thống. Vui lòng tải lại trang.</div>`;
- else if(S.barber!==null&&S.date)tm+=`<div class="slots">`+TIMES.map(t=>{const x=isTaken(S.date,CFG.barbers[S.barber],t)||pastSlot(S.date,t);return `<div class="chip ${S.time===t?"on":""} ${x?"x":""}" data-t="${t}">${t}</div>`}).join("")+`</div>`;
- else tm+=`<p style="color:var(--mut)">Chọn thợ và ngày để xem giờ trống.</p>`;
- const ready=S.svc!==null&&S.barber!==null&&S.date&&S.time;
+ else if(S.barber!==null&&S.date&&S.svcs.length)tm+=`<div class="slots">`+TIMES.map(t=>{const x=isTaken(S.date,CFG.barbers[S.barber],t)||pastSlot(S.date,t);return `<div class="chip ${S.time===t?"on":""} ${x?"x":""}" data-t="${t}">${t}</div>`}).join("")+`</div>`;
+ else tm+=`<p style="color:var(--mut)">Chọn dịch vụ, thợ và ngày để xem giờ trống.</p>`;
+ const ready=S.svcs.length&&S.barber!==null&&S.date&&S.time;
+ const sum=S.svcs.length?`<p style="color:var(--mut);margin:10px 0 0">Đã chọn ${S.svcs.length} dịch vụ · Tổng ${priceTotal()}đ</p>`:"";
  const dc=`<input type="date" id="dt" min="${dkey(new Date())}" max="${maxDate()}" value="${S.date||""}" style="width:auto;min-width:200px;margin:0">${S.date?`<span style="margin-left:12px;color:var(--mut)">${wdText(S.date)}</span>`:""}`;
- app.innerHTML=`<h2>1. Dịch vụ</h2>${sv}<h2>2. Thợ cắt</h2><div class="row">${bb}</div><h2>3. Ngày</h2><div class="row">${dc}</div>${tm}${ready?`<h2>4. Thông tin</h2><input id="nm" placeholder="Tên của bạn" autocomplete="name"><input id="ph" type="tel" placeholder="Số điện thoại" autocomplete="tel">${S.err?`<div class="msg err">${esc(S.err)}</div>`:""}<button class="btn" id="ok">Xác nhận đặt lịch</button>`:""}`;
- app.querySelectorAll("[data-s]").forEach(e=>e.onclick=()=>{S.svc=+e.dataset.s;render()});
+ app.innerHTML=`<h2>1. Dịch vụ (chọn 1 hoặc nhiều)</h2>${sv}${sum}<h2>2. Thợ cắt</h2><div class="row">${bb}</div><h2>3. Ngày</h2><div class="row">${dc}</div>${tm}${ready?`<h2>4. Thông tin</h2><input id="nm" placeholder="Tên của bạn" autocomplete="name"><input id="ph" type="tel" placeholder="Số điện thoại" autocomplete="tel">${S.err?`<div class="msg err">${esc(S.err)}</div>`:""}<button class="btn" id="ok">Xác nhận đặt lịch</button>`:""}`;
+ app.querySelectorAll("[data-s]").forEach(e=>e.onclick=()=>{const i=+e.dataset.s,k=S.svcs.indexOf(i);k<0?S.svcs.push(i):S.svcs.splice(k,1);S.time=null;render()});
  app.querySelectorAll("[data-b]").forEach(e=>e.onclick=()=>{S.barber=+e.dataset.b;S.time=null;render()});
  $("#dt").onchange=e=>{const v=e.target.value;S.date=(v&&v>=dkey(new Date())&&v<=maxDate())?v:null;S.time=null;render()};
  app.querySelectorAll("[data-t]").forEach(e=>e.onclick=()=>{if(e.classList.contains("x"))return;S.time=e.dataset.t;S.err=null;render()});
@@ -101,14 +105,15 @@ async function confirmBooking(){
  const fail=m=>{S.err=m;render();$("#nm")&&($("#nm").value=nm,$("#ph").value=ph)};
  if(!nm||!/^[0-9+ ]{9,13}$/.test(ph))return fail("Vui lòng nhập tên và số điện thoại hợp lệ.");
  const btn=$("#ok");btn.disabled=true;btn.textContent="Đang gửi...";
- const sv=CFG.services[S.svc],b=CFG.barbers[S.barber],d={date:S.date,time:S.time,barber:b,service:sv.n,price:priceFor(sv,S.barber),name:nm,phone:ph};
+ const sl=selSvcs(),b=CFG.barbers[S.barber];
+ const names=sl.map(s=>s.n).join(" + "),d={date:S.date,time:S.time,barber:b,service:names,price:priceTotal(),name:nm,phone:ph};
  try{
   const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(d)});
   const j=await r.json();
   if(!j.ok){await load();S.time=null;return fail("Rất tiếc, khung giờ này vừa có người đặt. Vui lòng chọn giờ khác.")}
   const dt=new Date(S.date+"T00:00");
   taken.add(S.date+"|"+b+"|"+S.time);
-  S.done=`${sv.n} · ${b} · ${WD[dt.getDay()]} ${dt.getDate()}/${dt.getMonth()+1} lúc ${S.time}`;S.err=null;S.time=null;render();
+  S.done=`${names} · ${b} · ${WD[dt.getDay()]} ${dt.getDate()}/${dt.getMonth()+1} lúc ${S.time}`;S.err=null;S.time=null;render();
  }catch(e){fail("Không gửi được. Vui lòng kiểm tra mạng và thử lại.")}
 }
 addEventListener("hashchange",render);
